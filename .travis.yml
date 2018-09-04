@@ -1,5 +1,14 @@
 language: cpp
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
 before_script:
+  - export CXX=/usr/bin/g++-7
+  - export CC=/usr/bin/gcc-7
+
   - sudo apt-get install libgtest-dev cmake -y
 
   - cd /usr/src/gtest

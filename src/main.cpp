@@ -14,9 +14,8 @@ int main(int argc, char const *argv[])
 
 		int num_commands = atoi(argv[1]);
 
-		bulk_handler handler(num_commands);
-		data_reader reader(std::cin, &handler);
-		reader.Perform();
+		data_reader reader(num_commands);
+		reader.Perform(std::cin);
 	}
 	catch (std::exception& e)
 	{
