@@ -35,18 +35,13 @@ public:
 
 	virtual ~task_queue()
 	{
-		isWorking = false;
-		cond_var.notify_all();
-
-		for (auto& thrd : threads)
-		{
-			if (thrd.joinable())
-				thrd.join();
-		}
+		JoinAll();
 	}
 
 	std::vector<stat_counter> GetStatistics()
 	{
+		JoinAll();
+
 		std::unique_lock<std::mutex> lock(guard_mutex);
 		std::vector<stat_counter> result;
 		transform(st.begin(), st.end(), std::back_inserter(result), 
@@ -63,6 +58,18 @@ public:
 	
 private:
 	using element_t = T;
+
+	void JoinAll()
+	{
+		isWorking = false;
+		cond_var.notify_all();
+
+		for (auto& thrd : threads)
+		{
+			if (thrd.joinable())
+				thrd.join();
+		}
+	}
 
 	void DoWork() // active object pattern
 	{		
