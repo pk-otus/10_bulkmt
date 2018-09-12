@@ -3,12 +3,12 @@
 #include <queue>
 #include <thread>
 #include <map>
-#include <functional>
+#include <condition_variable>
 #include <algorithm>
 
 #include "statistics.h"
 
-template<typename T> T PopFirst(std::queue<T>& q)
+template<typename T> T Pop(std::queue<T>& q)
 {
 	auto ptr = std::move(q.front());
 	q.pop();
@@ -19,90 +19,107 @@ using cout_element_t = std::pair<size_t, std::string>;
 using file_element_t = std::unique_ptr<commands_block>;
 
 template <typename T>
-class basic_task_queue
+class task_queue
 {
 public:
-	explicit basic_task_queue(const std::string& title) : stat_title(title) {}
-
-	virtual ~basic_task_queue()
+	explicit task_queue(size_t num_threads) :
+		isWorking(true)
 	{
+		for (size_t i = 0; i < num_threads; ++i)
+		{
+			threads.emplace_back(&task_queue::DoWork, this);
+			st.insert({ threads.back().get_id(),
+						stat_counter(1 == num_threads ? 0 : threads.size()) });
+		}
+	}
+
+	virtual ~task_queue()
+	{
+		isWorking = false;
+		cond_var.notify_all();
+
 		for (auto& thrd : threads)
 		{
 			if (thrd.joinable())
 				thrd.join();
 		}
-		std::vector<std::string> stat_results;
-		std::transform(st.begin(), st.end(), std::back_inserter(stat_results),
-			[](const auto& d) { return d.second.GetStatistics(); });
-
-		std::sort(stat_results.begin(), stat_results.end());
-
-		for (auto& stat : stat_results)
-		{
-			std::cout << stat;
-		}
 	}
 
-	bool IsEmpty() const { return queue_elements.empty(); }
-
-	void AddThreads(size_t num, std::function<void()> func)
+	std::vector<stat_counter> GetStatistics()
 	{
+		std::unique_lock<std::mutex> lock(guard_mutex);
+		std::vector<stat_counter> result;
+		transform(st.begin(), st.end(), std::back_inserter(result), 
+			[](const auto& d){ return d.second; });
 
-		for (size_t i = 0; i < num; ++i)
-		{
-			threads.emplace_back(func);
-			st.insert({ threads.back().get_id(), 
-						stat_counter(stat_title, (1 == num ?  0 : threads.size())) });
-		}
+		return result;
 	}
-
-	void Enqueue(std::unique_ptr<commands_block>& elem);
-
-	void DequeueSingle()
+	void Push(std::unique_ptr<commands_block>& elem)
 	{
-		element_t elem;
-		{
-			std::lock_guard<std::mutex> lock(queue_guard);
-			elem = PopFirst(queue_elements);
-		}
-
-		Process(elem);		
+		std::lock_guard<std::mutex> lock(guard_mutex);
+		Enqueue(elem);
+		cond_var.notify_one();
 	}
-
+	
 private:
 	using element_t = T;
 
-	void Process(const element_t& e);
+	void DoWork() // active object pattern
+	{		
+		while (isWorking)
+		{
+			std::unique_lock<std::mutex> lock(guard_mutex);
+			while (queue_elements.empty() && isWorking)
+			{  // loop to avoid spurious wakeups
+				cond_var.wait(lock);
+			}
 
-	const std::string						stat_title;
+			if (isWorking)
+				PopQueue();
+		}
+		{
+			std::unique_lock<std::mutex> lock(guard_mutex);
+			while (!queue_elements.empty())
+				PopQueue();
+		}
+
+	}
+
+	void Enqueue(std::unique_ptr<commands_block>& elem);
+	void PopQueue();
+
+	bool									isWorking;
+	std::mutex								guard_mutex;
+	std::condition_variable					cond_var;
 	std::vector<std::thread>				threads;
 	std::map<std::thread::id ,stat_counter> st;
-	std::mutex								queue_guard;
 	std::queue<element_t>					queue_elements;
 };
 
 template <>
-inline void basic_task_queue<file_element_t>::Enqueue(std::unique_ptr<commands_block>& elem)
+inline void task_queue<file_element_t>::Enqueue(std::unique_ptr<commands_block>& elem)
 {
 	queue_elements.emplace(std::move(elem));
 }
 template <>
-inline void basic_task_queue<cout_element_t>::Enqueue(std::unique_ptr<commands_block>& elem)
+inline void task_queue<cout_element_t>::Enqueue(std::unique_ptr<commands_block>& elem)
 {
 	queue_elements.emplace(elem->CommandsCount(), elem->GetString());
 }
 
 template <>
-inline void basic_task_queue<file_element_t>::Process(const element_t& e)
+inline void task_queue<file_element_t>::PopQueue()
 {
+	auto e = Pop(queue_elements);
 	auto& stat = st.at(std::this_thread::get_id());
 	stat.AddBlock(e->CommandsCount());
-	e->LogToFile(stat.ThreadNumber(), stat.BlockCount());
+	e->LogToFile(stat.thread_number, stat.block_counter);
 }
 
 template <>
-inline void basic_task_queue<cout_element_t>::Process(const element_t& e)
+inline void task_queue<cout_element_t>::PopQueue()
 {
+	auto e = Pop(queue_elements);
 	st.at(std::this_thread::get_id()).AddBlock(e.first);
 	std::cout << e.second << std::endl;
 }

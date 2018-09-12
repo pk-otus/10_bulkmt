@@ -30,7 +30,8 @@ int main(int argc, char const *argv[])
 		auto t_begin = std::chrono::high_resolution_clock::now();
 		{
 			data_reader reader(num_commands, num_threads);
-			reader.Perform(std::cin);
+			auto result = reader.Perform(std::cin);
+			std::cout << result;
 		}
 		auto t_end = std::chrono::high_resolution_clock::now();
 		auto time_span = std::chrono::duration <uint64_t, std::nano>(t_end - t_begin).count() / 1000000;

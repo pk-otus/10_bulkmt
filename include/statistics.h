@@ -1,26 +1,10 @@
 #pragma once
-class stat_counter
+#include <sstream>
+#include <exception>
+
+struct stat_counter
 {
-public:
-	explicit stat_counter(const std::string& t, size_t num = 0) :
-		title			(t),
-		thread_num		(num),
-		block_counter	(0),
-		command_counter	(0) {}
-
-	~stat_counter() = default;
-
-	size_t ThreadNumber() const { return thread_num; }
-	size_t BlockCount() const	{ return block_counter; }
-	size_t CommandCount() const { return command_counter; }
-
-	std::string GetStatistics() const
-	{
-		auto strThreadNum = thread_num 
-								? std::to_string(thread_num) 
-								: std::string();
-		return title + strThreadNum + ": " + CoreStatistics();
-	}
+	explicit stat_counter(size_t num) : thread_number(num) {}
 
 	void AddBlock(size_t countCommands)
 	{
@@ -28,36 +12,75 @@ public:
 		command_counter += countCommands;
 	}
 
-protected:
-	virtual std::string CoreStatistics() const
+	friend std::ostream& operator<<(std::ostream& os, const stat_counter& obj)
 	{
-		return	std::to_string(block_counter) + " blocks, " +
-				std::to_string(command_counter) + " commands\n";
+		os <<	obj.block_counter << " blocks, " <<
+				obj.command_counter << " commands";
+		return os;
 	}
-private:
-	const std::string	title;
-	const size_t		thread_num;
-	size_t				block_counter;
-	size_t				command_counter;
+	size_t thread_number;
+	size_t block_counter = 0;
+	size_t command_counter = 0;
 };
 
-class stat_special_counter final: public stat_counter
+struct stat_special_counter 
 {
-public:
-	explicit stat_special_counter(const std::string& t) :
-		stat_counter(t),
-		string_counter(0) {}
-
 	void AddString(size_t cnt = 1)
 	{
 		string_counter += cnt;
 	}
-private:
-	std::string CoreStatistics() const override
+
+	friend std::ostream& operator<<(std::ostream& os, const stat_special_counter& obj)
 	{
-		return	std::to_string(string_counter + CommandCount()) + " strings, " +
-				stat_counter::CoreStatistics();
+		os	<< (obj.string_counter + obj.basic_stat.command_counter)
+			<< " strings, " << obj.basic_stat;
+		return os;
 	}
 
-	size_t				string_counter;
+	stat_counter		basic_stat{ 0 };
+	size_t				string_counter = 0;
+};
+
+struct data_reader_results
+{
+	bool IsValidResults()
+	{
+		bool is_valid_cout = 
+			(stat_main.basic_stat.command_counter == stat_cout.command_counter) &&
+			(stat_main.basic_stat.block_counter == stat_cout.block_counter);
+
+		size_t cmds = 0, blocks = 0;
+		for (auto& f_stat : stat_file)
+		{
+			cmds += f_stat.command_counter;
+			blocks += f_stat.block_counter;
+		}
+		bool is_valid_file = 
+				(cmds == stat_cout.command_counter) && 
+				(blocks == stat_cout.block_counter);
+
+
+		if (!is_valid_file)
+		{
+			std::ofstream fs = std::ofstream("error.txt", std::ios_base::out);
+			fs << *this;			
+		}
+		return is_valid_cout && is_valid_file;
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const data_reader_results& obj)
+	{
+		os	<< "main: " << obj.stat_main << '\n'
+			<< "log: " << obj.stat_cout << '\n';
+		int i = 0;
+		for (auto& f_stat : obj.stat_file)
+		{
+			os << "file" + std::to_string(++i) + ": " << f_stat << '\n';
+		}
+		return os;
+	}
+
+	stat_special_counter stat_main;
+	stat_counter stat_cout;
+	std::vector<stat_counter> stat_file;
 };
