@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
 
 		auto t_begin = std::chrono::high_resolution_clock::now();
 		{
-			data_reader reader(num_commands, num_threads);
+			bulkmt::data_reader reader(num_commands, num_threads);
 			auto result = reader.Perform(std::cin);
 			std::cout << result;
 		}

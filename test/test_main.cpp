@@ -12,7 +12,7 @@ test_result_t GetTestResult(size_t test_number, int test_bulk_size)
 	testing::internal::CaptureStdout();
 	{
 		std::ifstream file_in("in" + std::to_string(test_number) + ".txt", std::ofstream::in);
-		data_reader reader(test_bulk_size, 2);
+		bulkmt::data_reader reader(test_bulk_size, 2);
 		auto stat = reader.Perform(file_in);
 		std::cout << "main: " << stat.stat_main;
 		isValid = stat.IsValidResults();
