@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 
 #include "data_reader.h"
 
@@ -6,16 +7,34 @@ int main(int argc, char const *argv[])
 {
 	try
 	{
-		if (argc < 2)
+		int num_commands = 3;
+		int num_threads = 2;
+
+		if (argc >= 3)
 		{
-			std::cout << "Usage:\nbulk <num>\nParameters: \n<num>: number of packed commands\n";
-			return 1;
+			num_threads = atoi(argv[2]);
+		}
+		if (argc >= 2)
+		{
+			num_commands = atoi(argv[1]);
+			
+		}
+		else
+		{
+			std::cout <<	"Usage:\nbulk [commands = 3] [threads = 2]\nParameters: \n" <<
+							"<commands>: number of packed commands\n" <<
+							"<threads>: number of used threads\n";
+			//return 1;
 		}
 
-		int num_commands = atoi(argv[1]);
-
-		data_reader reader(num_commands);
-		reader.Perform(std::cin);
+		auto t_begin = std::chrono::high_resolution_clock::now();
+		{
+			data_reader reader(num_commands, num_threads);
+			reader.Perform(std::cin);
+		}
+		auto t_end = std::chrono::high_resolution_clock::now();
+		auto time_span = std::chrono::duration <uint64_t, std::nano>(t_end - t_begin).count() / 1000000;
+		std::cout << "\nDuration: " << time_span;
 	}
 	catch (std::exception& e)
 	{

@@ -16,32 +16,38 @@ public:
 
 	virtual ~commands_block() = default;
 
-	std::string GetLogFileName() const
+	void LogToFile(size_t thread_number, size_t cnt) const
 	{
-		return "bulk" + std::to_string(tm_created) + ".log";
+		auto name_file = "bulk" + std::to_string(tm_created) 
+								+ '_' + std::to_string(thread_number) 
+								+ '_' + std::to_string(cnt) + ".log";
+
+		auto stream = std::ofstream(name_file, std::ofstream::out);
+		stream << GetString();
+		stream.close();
 	}
 
-	friend std::ostream& operator<<(std::ostream& os, const commands_block& cmd)
+	std::string GetString() const
 	{
-		if (!cmd.pool_commands.empty())
+		std::string result;
+		if (!pool_commands.empty())
 		{
 			const std::string DELIMITER = ", ";
-			std::string result = "bulk: ";
-			for (const auto& item : cmd.pool_commands)
+			result += "bulk: ";
+			for (const auto& item : pool_commands)
 			{
 				result += item + DELIMITER;
 			}
 			result = result.substr(0, result.size() - DELIMITER.size());
-			os << result << std::endl;
 		}
-		return os;
+		return result;
 	}
 
 	virtual bool IsFull() const { return false; }
 
 	void AddCommand(const std::string& cmd)
 	{
-		pool_commands.push_back(cmd);
+		pool_commands.emplace_back(cmd);
 	}
 
 	size_t CommandsCount() const { return pool_commands.size(); }

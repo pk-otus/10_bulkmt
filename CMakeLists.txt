@@ -24,6 +24,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	set_target_properties(bulkmt PROPERTIES COMPILE_OPTIONS -W3)
 else()
 	set_target_properties(bulkmt PROPERTIES COMPILE_OPTIONS -Wpedantic -Wall -Wextra)
+	target_link_libraries(bulkmt pthread)
 endif()
 
 enable_testing()

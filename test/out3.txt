@@ -1,1 +1,5 @@
 bulk: cmd1, cmd2, cmd3, cmd4, cmd5, cmd6
+main: 10 strings, 1 blocks, 6 commands
+log: 1 blocks, 6 commands
+file1: 1 blocks, 6 commands
+file2: 0 blocks, 0 commands

@@ -27,7 +27,7 @@ public:
 			}
 			return true;
 		}
-		return cmd.empty();
+		return false;
 	}
 
 	std::unique_ptr<commands_block> CreateCommandBlock() const

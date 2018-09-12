@@ -3,16 +3,14 @@
 
 #include "data_reader.h"
 
-
 std::string GetTestResult(size_t test_number, int test_bulk_size)
 {
-	std::ifstream file_in("in" + std::to_string(test_number) + ".txt", std::ofstream::in);
-
 	testing::internal::CaptureStdout();
-
-	data_reader reader(test_bulk_size);
-	reader.Perform(file_in);
-
+	{
+		std::ifstream file_in("in" + std::to_string(test_number) + ".txt", std::ofstream::in);
+		data_reader reader(test_bulk_size, 2);
+		reader.Perform(file_in);
+	}
 	std::string output = testing::internal::GetCapturedStdout();
 
 	return output;
@@ -29,35 +27,35 @@ std::string GetControlResult(size_t test_number)
 	return result;
 }
 
-TEST(BulkTest, BulkTest1)
+TEST(BulkTest, BulkMTTest1)
 {
 	std::string control = GetControlResult(1);
 	std::string tested = GetTestResult(1, 3);
 	ASSERT_EQ(tested, control);
 }
 
-TEST(BulkTest, BulkTest2)
+TEST(BulkTest, BulkMTTest2)
 {
 	std::string control = GetControlResult(2);
 	std::string tested = GetTestResult(2, 3);
 	ASSERT_EQ(tested, control);
 }
 
-TEST(BulkTest, BulkTest3)
+TEST(BulkTest, BulkMTTest3)
 {
 	std::string control = GetControlResult(3);
 	std::string tested = GetTestResult(3, 3);
 	ASSERT_EQ(tested, control);
 }
 
-TEST(BulkTest, BulkTest4)
+TEST(BulkTest, BulkMTTest4)
 {
 	std::string control = GetControlResult(4);
 	std::string tested = GetTestResult(4, 3);
 	ASSERT_EQ(tested, control);
 }
 
-TEST(BulkTest, BulkTest5)
+TEST(BulkTest, BulkMTTest5)
 {
 	std::string control = GetControlResult(5);
 	std::string tested = GetTestResult(5, 2);
