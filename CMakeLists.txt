@@ -27,6 +27,8 @@ else()
 	target_link_libraries(bulkmt pthread)
 endif()
 
+configure_file(test_fixed.sh test_fixed.sh COPYONLY)
+
 enable_testing()
 add_subdirectory(test)
 
