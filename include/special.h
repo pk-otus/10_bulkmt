@@ -11,15 +11,17 @@ namespace bulkmt
 			sz_fixed_buffer(num_commands),
 			count_brackets(0) { }
 
-		bool TryHandleSpecial(const std::string& cmd)
+		virtual ~special_command_handler() = default;
+
+		bool TryHandleSpecial(char ch)
 		{
-			if ("{" == cmd)
+			if ('{' == ch)
 			{
 				if (0 == count_brackets) Flush();
 				++count_brackets;
 				return true;
 			}
-			if ("}" == cmd)
+			if ('}' == ch)
 			{
 				if (count_brackets)
 				{

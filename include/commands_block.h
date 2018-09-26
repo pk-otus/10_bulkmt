@@ -45,14 +45,15 @@ namespace bulkmt
 			return result;
 		}
 
-		virtual bool IsFull() const { return false; }
+		virtual bool NeedsLastFulsh() const noexcept { return false; }
+		virtual bool IsFull() const noexcept { return false; }
 
-		void AddCommand(const std::string& cmd)
+		void AddCommand(const char* str, size_t sz)
 		{
-			pool_commands.emplace_back(cmd);
+			pool_commands.emplace_back(std::string(str, sz));
 		}
 
-		size_t CommandsCount() const { return pool_commands.size(); }
+		size_t CommandsCount() const noexcept { return pool_commands.size(); }
 
 	private:
 		const time_t				tm_created;
@@ -64,7 +65,12 @@ namespace bulkmt
 	public:
 		explicit limited_commands_block(size_t sz) : sz_fixed_buffer(sz) { }
 
-		bool IsFull() const override
+		bool NeedsLastFulsh() const noexcept override
+		{
+			return true;
+		}
+
+		bool IsFull() const noexcept override
 		{
 			return sz_fixed_buffer == CommandsCount();
 		}

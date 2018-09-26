@@ -13,13 +13,17 @@ test_result_t GetTestResult(size_t test_number, int test_bulk_size)
 	{
 		std::ifstream file_in("in" + std::to_string(test_number) + ".txt", std::ofstream::in);
 		bulkmt::data_reader reader(test_bulk_size, 2);
-		auto stat = reader.Perform(file_in);
-		std::cout << "main: " << stat.stat_main;
-		isValid = stat.IsValidResults();
+		for (std::string strCmd; std::getline(file_in, strCmd);)
+		{
+			strCmd.erase(std::remove(strCmd.begin(), strCmd.end(), '\r'), strCmd.end());
+			if (strCmd.empty()) continue;
+			reader.Receive(strCmd.c_str(), strCmd.size());
+		}
+		isValid = reader.GetStatistics().IsValidResults();
 	}
 	std::string output = testing::internal::GetCapturedStdout();
-
-	return std::make_tuple(isValid, output);
+	auto result = output.substr(0, output.find("\nlog"));
+	return std::make_tuple(isValid, result);
 }
 
 std::string GetControlResult(size_t test_number)

@@ -30,8 +30,12 @@ int main(int argc, char const *argv[])
 		auto t_begin = std::chrono::high_resolution_clock::now();
 		{
 			bulkmt::data_reader reader(num_commands, num_threads);
-			auto result = reader.Perform(std::cin);
-			std::cout << result;
+			for (std::string strCmd; std::getline(std::cin, strCmd);)
+			{
+				strCmd.erase(std::remove(strCmd.begin(), strCmd.end(), '\r'), strCmd.end());
+				if (strCmd.empty()) continue;
+				reader.Receive(strCmd.c_str(), strCmd.size());
+			}
 		}
 		auto t_end = std::chrono::high_resolution_clock::now();
 		auto time_span = std::chrono::duration <uint64_t, std::nano>(t_end - t_begin).count() / 1000000;

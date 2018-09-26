@@ -1,6 +1,4 @@
 #pragma once
-#include <algorithm>
-
 #include "special.h"
 #include "task_queue.h"
 
@@ -15,43 +13,49 @@ namespace bulkmt
 			cout_threads(1),
 			commands(nullptr) {}
 
-		~data_reader() = default;
-
-		data_reader_results Perform(std::istream& input_stream)
+		~data_reader()
 		{
-			for (std::string strCmd; std::getline(input_stream, strCmd);)
-			{
-				strCmd.erase(std::remove(strCmd.begin(), strCmd.end(), '\r'), strCmd.end());
-				if (strCmd.empty()) continue;
-				
-				if (TryHandleSpecial(strCmd))
-				{
-					stats.AddString();
-					continue;
-				}
-				if (!commands)
-				{
-					commands = CreateCommandBlock();
-				}
+			std::cout << GetStatistics();
+		}
 
-				commands->AddCommand(strCmd);
-				if (commands->IsFull())
-					Flush();
-			}
-			if (dynamic_cast<limited_commands_block*>(commands.get()))
+
+		void Receive(const char* str, size_t sz)
+		{
+			if (1 == sz && TryHandleSpecial(*str))
 			{
+				stats.AddString();
+				return;
+			}
+			if (!commands)
+			{
+				commands = CreateCommandBlock();
+			}
+
+			commands->AddCommand(str, sz);
+			if (commands->IsFull())
 				Flush();
-			}
-			else
+		}
+
+		data_reader_results GetStatistics()
+		{
+			if (commands)
 			{
-				if (commands)
+				if (commands->NeedsLastFulsh())
+				{
+					Flush();
+				}
+				else
+				{
 					stats.AddString(commands->CommandsCount());
+				}
+				commands = nullptr;
 			}
 
 			return { stats,
-						cout_threads.GetStatistics().front(),
-						file_threads.GetStatistics() };
+			cout_threads.GetStatistics().front(),
+			file_threads.GetStatistics() };
 		}
+
 	private:
 		void Flush() override
 		{
